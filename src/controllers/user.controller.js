@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
+import { deleteColudinaryFile } from "../utils/deleteCloudinaryFiles.js";
 
 // function for generating access & refresh tokes
 
@@ -55,7 +56,7 @@ const registerUser = asyncHandler( async (req, res) => {
 
     const avtarLOcalPath=req.files?.avatar[0]?.path;
     
-    console.log(avtarLOcalPath);
+    // console.log(avtarLOcalPath);
     
     
     let coverImageLOcalPath
@@ -298,19 +299,43 @@ const updateUserDetailes = asyncHandler(async (req, res) => {
   if (!isPasswardValid) {
     throw new ApiError(200, "invalid password!!");
   }
-  if(fullname){
-    user.fullname = fullname;
-  }
+  // if(fullname){
+  //   user.fullname = fullname;
+  // }
   
-  if(email){
-    user.email = email
+  // if(email){
+  //   user.email = email;
+  // }
+  // await user.save({validateBeforeSave:true})
+
+  // differnt method
+
+  if(fullname){
+  await User.findByIdAndUpdate(
+    user._id,
+    {
+      $set:{
+        fullname
+      }
+    }
+  )
   }
-  await user.save({ validateBeforeSave: true })
+  if(email){
+  await User.findByIdAndUpdate(
+    user._id,
+    {
+      $set:{
+        email
+      }
+    }
+  )
+  }
   return res.status(200).json(new ApiResponse(200,{},"Update successfully"));
 
 })
 
 const updateImages = asyncHandler(async (req, res) => {
+
   const avtarLOcalPath = req.files?.avatar[0]?.path;
 
   console.log(avtarLOcalPath);
@@ -329,15 +354,45 @@ const updateImages = asyncHandler(async (req, res) => {
     throw new ApiError(400,"Image required")
   }
   const user = await User.findById(req.user?._id)
+  const oldAvatarUrl = user.avatar
+  const oldCoverImageUrl = user.coverImage
+
+
   if(avtarLOcalPath){
     const avatar = await uploadOnCloudinary(avtarLOcalPath);
-    user.avatar = avatar?.url
+    // user.avatar = avatar?.url
+    await User.findByIdAndUpdate(
+      user._id,
+      {
+        $set:{
+          avatar:avatar.url
+        }
+      },
+      {
+        new:true
+      }
+    )
+    deleteColudinaryFile(oldAvatarUrl)
   }
   if(coverImageLOcalPath){
     const coverImage = await uploadOnCloudinary(coverImageLOcalPath);
-    user.coverImage = coverImage?.url
+    // user.coverImage = coverImage?.url
+    await User.findByIdAndUpdate(
+      user._id,
+      {
+        $set: {
+          coverImage:coverImage.url
+        },
+      },
+      {
+        new: true,
+      }
+    )
+    deleteColudinaryFile(oldCoverImageUrl)
   }
-  user.save({validateBeforeSave:true})
+
+
+  // user.save({validateBeforeSave:true})
   return res
   .status(200)
   .json(new ApiResponse(
@@ -346,6 +401,7 @@ const updateImages = asyncHandler(async (req, res) => {
     "update successfully!!"
   ))
 })
+
 
 export {
   registerUser,
