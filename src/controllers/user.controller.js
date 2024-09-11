@@ -104,6 +104,7 @@ const registerUser = asyncHandler( async (req, res) => {
         new ApiResponse(200, createdUser, "User created successfully!!")
     )
 })
+
 const logInUser = asyncHandler( async (req, res) => {
   //reqest body => data
   // validate data
@@ -179,6 +180,7 @@ const logInUser = asyncHandler( async (req, res) => {
       );
 
 })
+
 const logOutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
       req.user._id,
@@ -202,6 +204,7 @@ const option = {
       .json(new ApiResponse(200, {}, "User Logged out successfully!!"));
 
 })
+
 const refreshAccessToken = asyncHandler(async (req, res) => {
   try {
     // take refresh token from cookies
@@ -248,4 +251,109 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
 })
 
-export { registerUser, logInUser, logOutUser, refreshAccessToken };
+const UpdatePassward = asyncHandler(async (req, res) => {
+  // taking data from frontend
+  const { oldPassward, newPassward, confirmPassward } = req.body;
+  // check all fields are present or not
+  if (!oldPassward && !newPassward && !confirmPassward) {
+    throw new ApiError(401, "All fields are required!");
+  }
+  // check newpassward and confirmpassward is same or not
+  if (!(newPassward === confirmPassward)) {
+    throw new ApiError(401, "please field correct info");
+  }
+  // db call for passward
+  // we can directly use req.user due to auth middleware
+  const user = await User.findById(req.user._id);
+  // check oldpassward is matched with the passward that is stored in database or not
+  const isPasswardValid = await user.isPasswordCorrect(oldPassward)
+  if (!isPasswardValid) {
+    throw new ApiError(400, "Invalid passward");
+  }
+  user.passward = newPassward
+  await user.save({validateBeforeSave:true})
+
+  return res
+  .status(200)
+  .json(new ApiResponse(200, {}, "Password Update successfully"));
+})
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+  return res
+  .status(200)
+  .json(new ApiResponse(
+    200,
+    res.user,
+    "user fetched successfully!!"
+  ))
+})
+
+const updateUserDetailes = asyncHandler(async (req, res) => {
+  const {fullname, email, passward} = req.body;
+  if(!(fullname || email) || !passward){
+    throw new ApiError(400, "please fill the required fields")
+  }
+  const user = await User.findById(req.user?._id)
+  const isPasswardValid = await user.isPasswordCorrect(passward);
+  if (!isPasswardValid) {
+    throw new ApiError(200, "invalid password!!");
+  }
+  if(fullname){
+    user.fullname = fullname;
+  }
+  
+  if(email){
+    user.email = email
+  }
+  await user.save({ validateBeforeSave: true })
+  return res.status(200).json(new ApiResponse(200,{},"Update successfully"));
+
+})
+
+const updateImages = asyncHandler(async (req, res) => {
+  const avtarLOcalPath = req.files?.avatar[0]?.path;
+
+  console.log(avtarLOcalPath);
+
+  let coverImageLOcalPath;
+  console.log("req.files: ", req.files);
+  if (
+    req.files &&
+    Array.isArray(req.files.coverImage) &&
+    req.files.coverImage.length > 0
+  ) {
+    coverImageLOcalPath = req.files?.coverImage[0]?.path;
+  }
+
+  if(!(avtarLOcalPath || coverImageLOcalPath)){
+    throw new ApiError(400,"Image required")
+  }
+  const user = await User.findById(req.user?._id)
+  if(avtarLOcalPath){
+    const avatar = await uploadOnCloudinary(avtarLOcalPath);
+    user.avatar = avatar?.url
+  }
+  if(coverImageLOcalPath){
+    const coverImage = await uploadOnCloudinary(coverImageLOcalPath);
+    user.coverImage = coverImage?.url
+  }
+  user.save({validateBeforeSave:true})
+  return res
+  .status(200)
+  .json(new ApiResponse(
+    200,
+    {},
+    "update successfully!!"
+  ))
+})
+
+export {
+  registerUser,
+  logInUser,
+  logOutUser,
+  refreshAccessToken,
+  UpdatePassward,
+  getCurrentUser,
+  updateUserDetailes,
+  updateImages
+};
