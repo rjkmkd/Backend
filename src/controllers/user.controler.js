@@ -224,9 +224,108 @@ const refreshAccessToken = asyncHandler(async(req, res) => {
 
 })
 
-export { 
-  registerUser, 
-  loginUser, 
-  logoutUser, 
-  refreshAccessToken 
+const updatePassword = asyncHandler(async(req, res)=> {
+  const user = await User.findById(req.user?._id);
+  console.log(user);
+  
+  if(!user){
+    throw new ApiError(401,"Invalid request!");
+  }
+  const { updatedPassword, oldPassword } = req.body;
+  console.log(oldPassword, updatedPassword);
+  
+  if(!updatedPassword && !oldPassword){
+    throw new ApiError(401,"all fields are required!");
+  }
+  const isPasswordValid =  user.isPasswordCorrect(oldPassword);
+  if (!isPasswordValid) {
+    throw new ApiError(401, "invalid old password");
+  }
+  user.password = updatedPassword;
+  await user.save({ validateBeforeSave: false });
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200,{},"passwords update successfully!")
+  )
+
+})
+
+const updateImages = asyncHandler(async(req, res)=> {
+try {
+    const user = req.user;
+    if(!user){
+      throw new ApiError(401,"Invalid request!");
+    }
+      let updatedAvatar = "";
+      let updatedCoverImage = "";
+      let UpdatedAvatarLocalPath = "";
+      let UpdatedCoverImageLocalpath = "";
+    if (
+      req.files &&
+      Array.isArray(req.files.avatar) &&
+      req.files.avatar.length > 0
+    ){
+        UpdatedAvatarLocalPath = req.files?.avatar[0]?.path;
+    }
+    if (
+      req.files &&
+      Array.isArray(req.files.coverImage) &&
+      req.files.coverImage.length > 0
+    ) {
+        UpdatedCoverImageLocalpath = req.files?.coverImage[0]?.path;
+    }
+    if(UpdatedAvatarLocalPath || UpdatedCoverImageLocalpath){
+      if(UpdatedAvatarLocalPath)
+        updatedAvatar = await uploadOnCloudinary(UpdatedAvatarLocalPath);
+      if(UpdatedCoverImageLocalpath)
+         updatedCoverImage = await uploadOnCloudinary(UpdatedCoverImageLocalpath)
+  
+      user.avatar = updatedAvatar.url;
+      user.coverImage = updatedCoverImage.url;
+      await user.save({ validateBeforeSave: false });
+    }else{
+      throw new ApiError(401,"please select a Image!"); 
+    }
+  
+    // if (!UpdatedAvatarLocalPath) {
+    //   throw new ApiError(400, "please select a new avatar!");
+    // }else{
+    //   const updatedAvatar = await uploadOnCloudinary(UpdatedAvatarLocalPath);
+    // }
+    // if (!UpdatedCoverImageLocalpath) {
+    //   throw new ApiError(400, "please select a new avatar!");
+    // } else {
+    //   const updatedCoverImage = await uploadOnCloudinary(
+    //     UpdatedCoverImageLocalpath
+    //   );
+    // }
+  
+    return res
+    .status(200)
+    .json(
+      new ApiResponse(200,{user},"Image update successfully!")
+    )
+} catch (error) {
+  throw new ApiError(401,error?.message || "please select a valid Image File!");
+}
+
+})
+
+const getCurrentUser = asyncHandler(async(req, res) => {
+  return res
+  .status(200)
+  .json(
+    new ApiResponse(200, req.user, "successfully got current user!")
+  )
+})
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  updatePassword,
+  updateImages,
+  getCurrentUser
 };
