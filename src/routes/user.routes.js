@@ -6,7 +6,8 @@ import {
   refreshAccessToken,
   updatePassword,
   updateImages,
-  getCurrentUser
+  getCurrentUser,
+  getUserChannelProfile,
 } from "../controllers/user.controler.js";
 import {upload} from "../middlewares/multer.middleware.js"
 import {verifyJWT} from "../middlewares/Auth.middleware.js"
@@ -44,4 +45,5 @@ router.route("/update-image").post(verifyJWT,upload.fields([
   ]), updateImages);
 
   router.route("/get-currentUser").get(verifyJWT, getCurrentUser);
+  router.route("/get-channelprofile").get(verifyJWT,getUserChannelProfile);
 export default router;
