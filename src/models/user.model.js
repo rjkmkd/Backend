@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     require: [true, "Password is required"],
   },
-  refrechToken: {
+  refreshToken: {
     type: String,
     
   },
