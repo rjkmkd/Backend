@@ -4,6 +4,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken"
+import mongoose from "mongoose"
 
 // method to generate access and refresh token
 const generateaccessAndRefreshToken = async (userId) => {
@@ -321,12 +322,12 @@ const getCurrentUser = asyncHandler(async(req, res) => {
 })
 
 const getUserChannelProfile = asyncHandler(async(req,res)=>{
-  const userName = req.body;
-  // console.log("username",userName);
+  const {userName} = req.params;
   
   if(!userName){
     throw new ApiError(400,"userName is missing!")
   }
+  
   const userId = req.user?._id || null;
   const channel = await User.aggregate([
     // Match the user by userName
@@ -397,8 +398,9 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
     },
   ]);
 
-  console.log("channel",channel);
-  console.log("UserId",userId);
+
+console.log("Match result:", channel);
+
   
   if(!channel?.length){
     throw new ApiError(404,"channel does not exists!")
@@ -414,41 +416,41 @@ const getWatchHistory = asyncHandler(async(req, res) => {
   const user = await User.aggregate([
     {
       $match: {
-        _id: new mongoose.Types.objectId(req.user._id),
+        _id: new mongoose.Types.ObjectId(req.user._id),
       },
     },
     {
       $lookup: {
         from: "videos",
         localField: "watchHistory",
-        foreignField:"_id",
+        foreignField: "_id",
         as: "watchHistory",
-        pipeline:[
+        pipeline: [
           {
-            $lookup:{
-              from:"users",
-              localField:"owner",
-              foreignField:"_id",
-              as:"owner",
-              pipeline:[
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
                 {
-                  $project:{
-                    fullName:1,
-                    userName:1,
-                    avatar:1
-                  }
-                }
-              ]
-            }
+                  $project: {
+                    fullName: 1,
+                    userName: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
           },
           {
-            $addFields:{
-              owner:{
-                $first:"$owner"
-              }
-            }
-          }
-        ]
+            $addFields: {
+              owner: {
+                $first: "$owner",
+              },
+            },
+          },
+        ],
       },
     },
   ]);
