@@ -3,27 +3,27 @@ import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2"
 const videoSchema = new mongoose.Schema(
     {
         videoFile:{
-            typr:String,
+            type:String,
             required:true
         },
         thumbnail:{
-            typr:String,
+            type:String,
             required:true
         },
         title:{
-            typr:String,
+            type:String,
             required:true
         },
         description:{
-            typr:String,
+            type:String,
             required:true
         },
         duration:{
-            typr:Number,
+            type:Number,
             required:true
         },
         views:{
-            typr:Number,
+            type:Number,
             default:0
         },
         isPublised:{
